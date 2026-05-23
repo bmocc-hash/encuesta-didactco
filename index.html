@@ -91,7 +91,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ty-sub{font-size:14px;color:#555;line-height:1.6;max-width:380px;margin-bottom:1rem}
 .ty-tagline{font-size:16px;font-weight:800}
 .btn-reset{margin-top:1.25rem;height:46px;padding:0 28px;background:var(--blue);border:none;border-radius:12px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:99px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);color:#fff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:99px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap}
 .toast.show{opacity:1}
 @media(max-width:600px){.opts-grid{grid-template-columns:1fr!important}.price-grid{grid-template-columns:1fr 1fr}}
 </style>
@@ -119,7 +119,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="toast" id="toast"></div>
 <script>
 const SHEETS_URL='https://script.google.com/macros/s/AKfycbxVggNsg8goONawC1owMC9sjhLJFG6oQpLaowJWn1_qwnezs4JhxJsMgTwlUoeXlhw/exec';
-
 const BADGE_META=[
   {bg:'#EAF2FD',color:'#1B6DB5',icon:'👤'},
   {bg:'#EAF7EA',color:'#2E7D2C',icon:'⭐'},
@@ -132,7 +131,6 @@ const BADGE_META=[
   {bg:'#FEF3E9',color:'#B85A10',icon:'💬'},
   {bg:'#EAF7EA',color:'#2E7D2C',icon:'📋'},
 ];
-
 const steps=[
   {id:'perfil',type:'single',label:'¿Quién sos?',si:0,question:'¿Cuál describe mejor tu rol?',options:[{v:'docente',l:'Docente',s:'Nivel inicial, primario o medio',c:0},{v:'profesional',l:'Profesional',s:'Psico, fonoaudiología, TO…',c:1},{v:'familia',l:'Familia',s:'Padre, madre o cuidador/a',c:2},{v:'otro',l:'Otro',s:'Directivo, coordinador, etc.',c:3}]},
   {id:'conocimiento',type:'single',label:'¿Ya nos conocías?',si:1,question:'¿Ya conocías el catálogo de Didáct&Co.?',options:[{v:'si_compre',l:'Sí, y ya compré',s:'',c:0},{v:'si_nunca',l:'Sí, pero no compré',s:'',c:1},{v:'no_ahora',l:'Acabo de conocerlos',s:'',c:2}]},
@@ -145,22 +143,16 @@ const steps=[
   {id:'comentario',type:'text',label:'Tu opinión libre',si:8,optional:true,question:'¿Hay algo más que quieras contarnos? Sugerencias, dudas o lo que se te ocurra.'},
   {id:'contacto',type:'contact',label:'¡Quedate al tanto!',si:9,optional:true,question:'¿Querés que te avisemos cuando lancemos la suscripción?',hint:'Dejanos tu nombre y mail — prometemos no hacer spam 💌'},
 ];
-
 let current=0;const answers={};
-
 function showToast(msg,ok){
   const t=document.getElementById('toast');
-  t.textContent=msg;
-  t.style.background=ok?'#2E7D2C':'#c0392b';
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3000);
+  t.textContent=msg;t.style.background=ok?'#2E7D2C':'#c0392b';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);
 }
-
 function buildDots(){
   const row=document.getElementById('dots-row');row.innerHTML='';
   steps.forEach((_,i)=>{const d=document.createElement('div');d.className='dot'+(i<current?' done':i===current?' active':'');row.appendChild(d);});
 }
-
 function renderStep(idx){
   const s=steps[idx];const pct=Math.round((idx/steps.length)*100);
   document.getElementById('prog').style.width=pct+'%';
@@ -206,7 +198,6 @@ function renderStep(idx){
   document.getElementById('btn-next').textContent=idx===steps.length-1?'¡Enviar encuesta! ✓':'Continuar →';
   updateNext();attachEvents(s);
 }
-
 function attachEvents(s){
   if(s.type==='single'){document.querySelectorAll('#opts .opt').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('#opts .opt').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');answers[s.id]=btn.dataset.v;updateNext();});});}
   if(s.type==='multi'){const max=s.maxSelect||999;document.querySelectorAll('#opts .tag').forEach(btn=>{btn.addEventListener('click',()=>{const cur=answers[s.id]||[];const v=btn.dataset.v;if(cur.includes(v)){answers[s.id]=cur.filter(x=>x!==v);btn.classList.remove('sel');}else if(cur.length<max){answers[s.id]=[...cur,v];btn.classList.add('sel');}const cnt=document.getElementById('cnt');if(cnt)cnt.textContent='Seleccionados: '+((answers[s.id]||[]).length)+'/'+max;updateNext();});});}
@@ -215,30 +206,35 @@ function attachEvents(s){
   if(s.type==='text'){const ta=document.getElementById('free-text');if(ta)ta.addEventListener('input',()=>{answers[s.id]=ta.value;});}
   if(s.type==='contact'){const n=document.getElementById('fi-n');const e=document.getElementById('fi-e');const upd=()=>{answers[s.id]={nombre:n?n.value:'',email:e?e.value:''};};if(n)n.addEventListener('input',upd);if(e)e.addEventListener('input',upd);}
 }
-
 function updateNext(){
   const s=steps[current];const btn=document.getElementById('btn-next');
   if(s.optional||s.type==='contact'||s.type==='text'){btn.disabled=false;return;}
   const a=answers[s.id];btn.disabled=s.type==='multi'?!(a&&a.length>0):!a;
 }
-
 function sendToSheets(payload){
-  if(!SHEETS_URL)return Promise.resolve();
-  return fetch(SHEETS_URL,{
-    method:'POST',
-    mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(payload)
-  }).catch(err=>console.warn('Sheets error:',err));
+  const params=new URLSearchParams({
+    fecha:payload.fecha||'',
+    perfil:payload.perfil||'',
+    conocimiento:payload.conocimiento||'',
+    materiales:payload.materiales||'',
+    edad:payload.edad||'',
+    interes:payload.interes||'',
+    frecuencia:payload.frecuencia||'',
+    precio:payload.precio||'',
+    beneficios:payload.beneficios||'',
+    comentario:payload.comentario||'',
+    nombre:payload.nombre||'',
+    email:payload.email||''
+  });
+  return fetch(SHEETS_URL+'?'+params.toString(),{method:'GET',mode:'no-cors'})
+    .catch(err=>console.warn('Sheets error:',err));
 }
-
 function showThankYou(){
   document.getElementById('prog').style.width='100%';
   document.getElementById('step-lbl').textContent='¡Completada!';
   document.getElementById('pct-lbl').textContent='100%';
   document.getElementById('nav-row').classList.add('hidden');
   buildDots();
-
   const payload={
     fecha:new Date().toLocaleString('es-UY'),
     perfil:answers.perfil||'',
@@ -253,20 +249,18 @@ function showThankYou(){
     nombre:(answers.contacto||{}).nombre||'',
     email:(answers.contacto||{}).email||''
   };
-
   sendToSheets(payload).then(()=>{
-    showToast('✓ Respuesta guardada en Google Sheets',true);
+    showToast('✓ Respuesta guardada',true);
   }).catch(()=>{
-    showToast('Sin conexión — respuesta no guardada',false);
+    showToast('⚠ Sin conexión — no se guardó',false);
   });
-
   document.getElementById('step-container').innerHTML='<div class="card"><div class="ty-wrap"><div class="ty-icon-row"><div class="ty-dot" style="background:#EAF2FD">❤️</div><div class="ty-dot" style="background:#EAF7EA">⭐</div><div class="ty-dot" style="background:#FEF3E9">🎲</div></div><div class="ty-title">¡Muchas gracias!</div><div class="ty-sub">Tu opinión nos ayuda a construir mejores herramientas para aprender jugando. ¡Hasta pronto en el stand!</div><div class="ty-tagline"><span style="color:#1B6DB5">Didáct</span><span style="color:#4BAF48">&</span><span style="color:#F47920">Co.</span> <span style="color:#999;font-weight:400">—</span> <span style="color:#E8197A">aprender jugando</span></div><button class="btn-reset" id="btn-reset" type="button">Nueva respuesta →</button></div></div>';
   document.getElementById('btn-reset').addEventListener('click',()=>{Object.keys(answers).forEach(k=>delete answers[k]);current=0;document.getElementById('nav-row').classList.remove('hidden');renderStep(0);});
 }
-
 document.getElementById('btn-next').addEventListener('click',()=>{if(current<steps.length-1){current++;renderStep(current);}else showThankYou();});
 document.getElementById('btn-back').addEventListener('click',()=>{if(current>0){current--;renderStep(current);}});
 renderStep(0);
 </script>
 </body>
 </html>
+ 
