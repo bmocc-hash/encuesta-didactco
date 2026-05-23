@@ -212,22 +212,35 @@ function updateNext(){
   const a=answers[s.id];btn.disabled=s.type==='multi'?!(a&&a.length>0):!a;
 }
 function sendToSheets(payload){
-  const params=new URLSearchParams({
-    fecha:payload.fecha||'',
-    perfil:payload.perfil||'',
-    conocimiento:payload.conocimiento||'',
-    materiales:payload.materiales||'',
-    edad:payload.edad||'',
-    interes:payload.interes||'',
-    frecuencia:payload.frecuencia||'',
-    precio:payload.precio||'',
-    beneficios:payload.beneficios||'',
-    comentario:payload.comentario||'',
-    nombre:payload.nombre||'',
-    email:payload.email||''
+  return new Promise((resolve)=>{
+    const cbName='jsonp_cb_'+Date.now();
+    const params=new URLSearchParams({
+      callback:cbName,
+      fecha:payload.fecha||'',
+      perfil:payload.perfil||'',
+      conocimiento:payload.conocimiento||'',
+      materiales:payload.materiales||'',
+      edad:payload.edad||'',
+      interes:payload.interes||'',
+      frecuencia:payload.frecuencia||'',
+      precio:payload.precio||'',
+      beneficios:payload.beneficios||'',
+      comentario:payload.comentario||'',
+      nombre:payload.nombre||'',
+      email:payload.email||''
+    });
+    window[cbName]=function(data){
+      delete window[cbName];
+      document.getElementById('jsonp-script')&&document.getElementById('jsonp-script').remove();
+      resolve(data);
+    };
+    const sc=document.createElement('script');
+    sc.id='jsonp-script';
+    sc.src=SHEETS_URL+'?'+params.toString();
+    sc.onerror=()=>resolve({result:'error'});
+    document.head.appendChild(sc);
+    setTimeout(()=>resolve({result:'timeout'}),8000);
   });
-  return fetch(SHEETS_URL+'?'+params.toString(),{method:'GET',mode:'no-cors'})
-    .catch(err=>console.warn('Sheets error:',err));
 }
 function showThankYou(){
   document.getElementById('prog').style.width='100%';
@@ -249,10 +262,9 @@ function showThankYou(){
     nombre:(answers.contacto||{}).nombre||'',
     email:(answers.contacto||{}).email||''
   };
-  sendToSheets(payload).then(()=>{
-    showToast('✓ Respuesta guardada',true);
-  }).catch(()=>{
-    showToast('⚠ Sin conexión — no se guardó',false);
+  sendToSheets(payload).then((res)=>{
+    if(res&&res.result==='ok'){showToast('✓ Respuesta guardada en Google Sheets',true);}
+    else{showToast('⚠ No se pudo guardar — revisá la conexión',false);}
   });
   document.getElementById('step-container').innerHTML='<div class="card"><div class="ty-wrap"><div class="ty-icon-row"><div class="ty-dot" style="background:#EAF2FD">❤️</div><div class="ty-dot" style="background:#EAF7EA">⭐</div><div class="ty-dot" style="background:#FEF3E9">🎲</div></div><div class="ty-title">¡Muchas gracias!</div><div class="ty-sub">Tu opinión nos ayuda a construir mejores herramientas para aprender jugando. ¡Hasta pronto en el stand!</div><div class="ty-tagline"><span style="color:#1B6DB5">Didáct</span><span style="color:#4BAF48">&</span><span style="color:#F47920">Co.</span> <span style="color:#999;font-weight:400">—</span> <span style="color:#E8197A">aprender jugando</span></div><button class="btn-reset" id="btn-reset" type="button">Nueva respuesta →</button></div></div>';
   document.getElementById('btn-reset').addEventListener('click',()=>{Object.keys(answers).forEach(k=>delete answers[k]);current=0;document.getElementById('nav-row').classList.remove('hidden');renderStep(0);});
@@ -263,4 +275,3 @@ renderStep(0);
 </script>
 </body>
 </html>
- 
